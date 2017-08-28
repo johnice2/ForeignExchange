@@ -13,7 +13,7 @@ namespace ForeignExchange
         {
             InitializeComponent();
 
-            MainPage = new ForeignExchange.MainPage();
+            MainPage = new ForeignExchange.Views.MainView();
         }
 
         protected override void OnStart()
