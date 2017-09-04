@@ -24,6 +24,8 @@ namespace ForeignExchange.ViewModels
         bool _isEnabled;
         string _result;
         ObservableCollection<Rate> _rates;
+        Rate _sourceRate;
+        Rate _targetRate;
         #endregion
 
         #region Properties
@@ -48,12 +50,36 @@ namespace ForeignExchange.ViewModels
             }
         }
         public Rate SourceRate {
-            get;
-            set;
+            get
+            {
+                return _sourceRate;
+            }
+            set
+            {
+                if (_sourceRate != value)
+                {
+                    _sourceRate = value;
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(nameof(SourceRate)));
+                }
+            }
         }
         public Rate TargetRate {
-            get;
-            set;
+            get
+            {
+                return _targetRate;
+            }
+            set
+            {
+                if (_targetRate != value)
+                {
+                    _targetRate = value;
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(nameof(TargetRate)));
+                }
+            }
         }
         public bool IsRunning {
             get
@@ -148,6 +174,22 @@ namespace ForeignExchange.ViewModels
         #endregion
 
         #region Commands
+
+        public ICommand SwitchCommand
+        {
+            get
+            {
+                return new RelayCommand(Switch);
+            }
+        }
+        void Switch()
+        {
+            var aux = SourceRate;
+            SourceRate = TargetRate;
+            TargetRate = aux;
+            Convert();
+        }
+
         public ICommand ConvertCommand
         {
             get
@@ -198,18 +240,6 @@ namespace ForeignExchange.ViewModels
                 amount, TargetRate.Code, 
                 amountConverted);
         }
-        #endregion
-
-        #region Properties
-        #endregion
-
-        #region Properties
-        #endregion
-
-        #region Properties
-        #endregion
-
-        #region Properties
         #endregion
        
     }
