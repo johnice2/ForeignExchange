@@ -2,21 +2,26 @@
 
 namespace ForeignExchange.ViewModels
 {
+    using ForeignExchange.Helpers;
+    using ForeignExchange.Services;
     using GalaSoft.MvvmLight.Command;
     using Models;
-    using System.Collections.ObjectModel;
-    using System.Windows.Input;
-    using System;
-    using System.ComponentModel;
-    using System.Net.Http;
-    using Newtonsoft.Json;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Windows.Input;
     using Xamarin.Forms;
 
     public class MainViewModel : INotifyPropertyChanged
     {
         #region Events
         public event PropertyChangedEventHandler PropertyChanged;
+        #endregion
+
+        #region Services
+        ApiService apiService;
+        DialogService dialogService;
+        DataService dataService;
         #endregion
 
         #region Attributes
@@ -26,9 +31,29 @@ namespace ForeignExchange.ViewModels
         ObservableCollection<Rate> _rates;
         Rate _sourceRate;
         Rate _targetRate;
+        string _status;
         #endregion
 
         #region Properties
+
+        public string Status
+        {
+            get
+            {
+                return _status;
+            }
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+                    PropertyChanged?.Invoke(
+                        this,
+                        new PropertyChangedEventArgs(nameof(Status)));
+                }
+            }
+        }
+
         public string Amount {
             get;
             set;
@@ -135,6 +160,9 @@ namespace ForeignExchange.ViewModels
         #region Constructors
         public MainViewModel()
         {
+            apiService = new ApiService();
+            dataService = new DataService();
+            dialogService = new DialogService();
             LoadRates();
         }
 
@@ -146,30 +174,35 @@ namespace ForeignExchange.ViewModels
         {
             IsRunning = true;
             Result = "Loading rates...";
-            try
-            {
-                var client = new HttpClient();
-                client.BaseAddress = new Uri("http://apiexchangerates.azurewebsites.net");
-                var controller = "/api/rates";
-                var response = await client.GetAsync(controller);
-                var result = await response.Content.ReadAsStringAsync();
-                if (!response.IsSuccessStatusCode)
-                {
-                    IsRunning = false;
-                    Result = result;
-                }
 
-                var rates = JsonConvert.DeserializeObject<List<Rate>>(result);
-                Rates = new ObservableCollection<Rate>(rates);
-                IsRunning = false;
-                Result = "Ready to convert";
-                IsEnabled = true;
-            }
-            catch (Exception ex)
+            var connection = await apiService.CheckConnection();
+            if (!connection.IsSuccess)
             {
                 IsRunning = false;
-                Result = ex.Message;
+                Result = connection.Message;
+                return;
             }
+
+            var url = "http://apiexchangerates.azurewebsites.net"//Application.Current.Resources["URLAPI"].ToString();
+
+            var response = await apiService.GetList<Rate>(url, "api/Rates");
+            if (!response.IsSuccess)
+            {
+                IsRunning = false;
+                Result = response.Message;
+                return;
+            }
+
+            //Storage data local
+            var rates = (List<Rate>)response.Result;
+            dataService.DeleteAll<Rate>();
+            dataService.Save(rates);
+
+            Rates = new ObservableCollection<Rate>((List<Rate>)response.Result);
+            IsRunning = false;
+            IsEnabled = true;
+            Result = "Ready to convert";
+            Status = "Rates loaded from internet";
         }
         #endregion
 
@@ -202,33 +235,29 @@ namespace ForeignExchange.ViewModels
         {
             if (string.IsNullOrEmpty(Amount))
             {
-                await Application.Current.MainPage.DisplayAlert("Eror",
-                    "You must enter a value i amount.",
-                    "Accept");
+                await dialogService.ShowMessage(Lenguages.Error,
+                     Lenguages.AmountValidation);
                 return;
             }
 
             decimal amount = 0;
             if (!decimal.TryParse(Amount, out amount))
             {
-                await Application.Current.MainPage.DisplayAlert("Eror",
-                                    "You must enter a numeric value i amount.",
-                                    "Accept");
+                await dialogService.ShowMessage("Error",
+                                    "You must enter a numeric value i amount.");
                 return;
             }
             if (SourceRate == null)
             {
-                await Application.Current.MainPage.DisplayAlert("Eror",
-                    "You must select a source rate.",
-                    "Accept");
+                await dialogService.ShowMessage("Eror",
+                    "You must select a source rate.");
                 return;
             }
 
             if (TargetRate == null)
             {
-                await Application.Current.MainPage.DisplayAlert("Eror",
-                    "You must enter a target i amount.",
-                    "Accept");
+                await dialogService.ShowMessage("Eror",
+                    "You must enter a target i amount.");
                 return;
             }
 

@@ -2,6 +2,7 @@
 <ContentPage 
     xmlns="http://xamarin.com/schemas/2014/forms"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+        xmlns:i18n="clr-namespace:ForeignExchange.Helpers"
     x:Class="ForeignExchange.Views.MainView"
     BindingContext="{Binding Main, Source={StaticResource Locator}}">
     <ContentPage.Padding>
@@ -18,7 +19,7 @@
                 FontSize="Large"
                 HorizontalOptions="Center"
                 Margin="10"
-                Text="Foreign Change">                
+                Text="{i18n:Translate Title}"   >
             </Label>
 
             <Grid>
@@ -110,8 +111,11 @@
                 Margin="0,10"
                 Text="{Binding Result, Mode=TwoWay}"
                 VerticalOptions="FillAndExpand"
-                VerticalTextAlignment="Center">
-                
+                VerticalTextAlignment="Center">                
+            </Label>
+            <Label
+                HorizontalOptions="Center"
+                Text="{Binding Status, Mode=TwoWay}">
             </Label>
         </StackLayout>
     </ContentPage.Content>
